@@ -33,6 +33,11 @@ import Viewer3D
 Item {
     id: _root
 
+    // ******************** 右侧第二路图传窗口 ********************
+    property var    _videoStreamManager:        QGroundControl.videoManager
+    property bool   _videoRecording:            _videoStreamManager.recording
+    property bool   _videoDecoding:             _videoStreamManager.decoding
+
     // These should only be used by MainRootWindow
     property var planController:    _planController
     property var guidedController:  _guidedController
@@ -116,7 +121,7 @@ Item {
             item1:                  mapControl
             item2:                  QGroundControl.videoManager.hasVideo ? videoControl : null
             show:                   QGroundControl.videoManager.hasVideo && !QGroundControl.videoManager.fullScreen &&
-                                        (videoControl.pipState.state === videoControl.pipState.pipState || mapControl.pipState.state === mapControl.pipState.pipState)
+                                    (videoControl.pipState.state === videoControl.pipState.pipState || mapControl.pipState.state === mapControl.pipState.pipState)
             z:                      QGroundControl.zOrderWidgets
 
             property real leftEdgeBottomInset: visible ? width + anchors.margins : 0
@@ -177,6 +182,95 @@ Item {
         Viewer3D{
             id:                     viewer3DWindow
             anchors.fill:           parent
+            visible:false
+        }
+
+        // 显示图传按钮
+        Rectangle {
+            id:                     showPip
+            anchors.right:          parent.right
+            anchors.margins:        _toolsMargin
+            anchors.bottom:         parent.bottom
+            height:                 ScreenTools.defaultFontPixelHeight * 2
+            width:                  ScreenTools.defaultFontPixelHeight * 2
+            radius:                 ScreenTools.defaultFontPixelHeight / 3
+            visible:                QGroundControl.videoManager.isStreamSource && !rightVideo.visible
+            color:                  Qt.rgba(0,0,0,0.5)
+            Image {
+                width:              parent.width  * 0.75
+                height:             parent.height * 0.75
+                sourceSize.height:  height
+                source:             "/res/buttonRight.svg"
+                mipmap:             true
+                fillMode:           Image.PreserveAspectFit
+                rotation:           180
+                anchors.verticalCenter:     parent.verticalCenter
+                anchors.horizontalCenter:   parent.horizontalCenter
+            }
+            MouseArea {
+                anchors.fill:   parent
+                onClicked:      rightVideo.visible = true
+            }
+        }
+        property real   _pipSize:           parent.width * 0.2
+        Rectangle {
+            id:                     rightVideo
+            width:                  _pipView.width
+            height:                 _pipView.height
+            color:                  "#222222"
+            anchors.right:          parent.right
+            anchors.bottom:         parent.bottom
+            anchors.margins:        _toolsMargin
+            //z:                      QGroundControl.zOrderTopMost
+            visible:                QGroundControl.videoManager.isStreamSource //&& globals.videoVisible
+
+            QGCLabel {
+                text:               QGroundControl.settingsManager.videoSettings.streamEnabled.rawValue ? "等待视频中" : "视频不可用"
+                font.pointSize:     ScreenTools.smallFontPointSize
+                color:              "white"
+                anchors.centerIn:   parent
+                visible:            !(QGroundControl.videoManager.decoding)
+            }
+
+            QGCVideoBackground {
+                id:             thermalVideo
+                objectName:     "thermalVideo"
+                anchors.fill:   parent
+                //receiver:       QGroundControl.videoManager.thermalVideoReceiver
+            }
+
+            MouseArea {
+                id: video02MouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                onEntered: {
+                    // console.log("video02MouseArea Mouse entered")
+                }
+                onExited: {
+                    // console.log("video02MouseArea Mouse exited")
+                }
+            }
+
+            // 隐藏图传按钮
+            QGCColoredImage {
+                source:         "/InstrumentValueIcons/cheveron-down.svg"
+                mipmap:         true
+                color:          "white"
+                fillMode:       Image.PreserveAspectFit
+                anchors.right:   parent.right
+                anchors.bottom: parent.bottom
+                visible:        (ScreenTools.isMobile || video02MouseArea.containsMouse)
+                height:         ScreenTools.defaultFontPixelHeight * 1.5
+                width:          ScreenTools.defaultFontPixelHeight * 1.5
+                rotation:       -90
+                sourceSize.height:  height
+                opacity:        0.5
+                MouseArea {
+                    //anchors.margins: -ScreenTools.defaultFontPixelHeight / 2
+                    anchors.fill:   parent
+                    onClicked:      rightVideo.visible = false
+                }
+            }
         }
     }
 }

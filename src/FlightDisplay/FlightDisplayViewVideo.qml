@@ -203,12 +203,14 @@ Item {
             onVisibleChanged: {
                 thermalItem.pipOrNot()
             }
+            /*
             QGCVideoBackground {
                 id:             thermalVideo
                 objectName:     "thermalVideo"
                 anchors.fill:   parent
                 opacity:        _camera ? (_camera.thermalMode === MavlinkCameraControl.THERMAL_BLEND ? _camera.thermalOpacity / 100 : 1.0) : 0
             }
+            */
         }
         //-- Zoom
         PinchArea {
