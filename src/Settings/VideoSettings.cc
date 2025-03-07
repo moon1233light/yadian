@@ -254,6 +254,7 @@ bool VideoSettings::streamConfigured(void)
 
 void VideoSettings::_configChanged(QVariant)
 {
+    qDebug() << "_configChanged";
     emit streamConfiguredChanged(streamConfigured());
 }
 

@@ -159,6 +159,7 @@ namespace GStreamer
 
 void initialize()
 {
+    gst_init(nullptr, nullptr);
     (void) qRegisterMetaType<VideoReceiver::STATUS>("STATUS");
 
     _setGstEnvVars();

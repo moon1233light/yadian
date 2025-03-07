@@ -8,6 +8,7 @@
  ****************************************************************************/
 
 #include "VideoManager.h"
+#include <iostream>
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
 #include "QGCCameraManager.h"
@@ -56,7 +57,7 @@ VideoManager::VideoManager(QObject *parent)
     , _subtitleWriter(new SubtitleWriter(this))
     , _videoSettings(SettingsManager::instance()->videoSettings())
 {
-    // qCDebug(VideoManagerLog) << Q_FUNC_INFO << this;
+    qDebug() << Q_FUNC_INFO << this;
 
 #ifdef QGC_GST_STREAMING
     GStreamer::initialize();
@@ -110,7 +111,7 @@ void VideoManager::init()
         videoReceiver.name = widgetTypes[videoReceiver.index];
 
         (void) connect(videoReceiver.receiver, &VideoReceiver::onStartComplete, this, [this, &videoReceiver](VideoReceiver::STATUS status) {
-            qCDebug(VideoManagerLog) << "Video" << videoReceiver.index << "Start complete, status:" << status;
+            qDebug() << "Video" << videoReceiver.index << "Start complete, status:" << status;
             switch (status) {
             case VideoReceiver::STATUS_OK:
                 videoReceiver.started = true;
@@ -128,7 +129,7 @@ void VideoManager::init()
         });
 
         (void) connect(videoReceiver.receiver, &VideoReceiver::onStopComplete, this, [this, &videoReceiver](VideoReceiver::STATUS status) {
-            qCDebug(VideoManagerLog) << "Video" << videoReceiver.index << "Stop complete, status:" << status;
+            qDebug() << "Video" << videoReceiver.index << "Stop complete, status:" << status;
             videoReceiver.started = false;
             if (status == VideoReceiver::STATUS_INVALID_URL) {
                 qCDebug(VideoManagerLog) << "Invalid video URL. Not restarting";
@@ -510,7 +511,7 @@ void VideoManager::_videoSourceChanged()
         stopVideo();
     }
 
-    qCDebug(VideoManagerLog) << "New Video Source:" << _videoSettings->videoSource()->rawValue().toString();
+    qCWarning(VideoManagerLog) << "New Video Source:" << _videoSettings->videoSource()->rawValue().toString();
 }
 
 bool VideoManager::_updateUVC()
@@ -651,8 +652,12 @@ bool VideoManager::_updateSettings(unsigned id)
         }
     }
 
+
+    qCWarning(VideoManagerLog) << "_updateSettings " << id;
+
+    const QString source = _videoSettings->videoSource()->rawValue().toString();
     if (id == 0) {
-        const QString source = _videoSettings->videoSource()->rawValue().toString();
+        //const QString source = _videoSettings->videoSource()->rawValue().toString();
         if (source == VideoSettings::videoSourceUDPH264) {
             settingsChanged |= _updateVideoUri(id, QStringLiteral("udp://0.0.0.0:%1").arg(_videoSettings->udpPort()->rawValue().toInt()));
         } else if (source == VideoSettings::videoSourceUDPH265) {
@@ -683,6 +688,18 @@ bool VideoManager::_updateSettings(unsigned id)
         }
     }
 
+    if(id == 1) {
+        if (source == VideoSettings::videoSourceRTSP) {
+            settingsChanged |= _updateVideoUri(id, _videoSettings->rtspUrl02()->rawValue().toString());
+        }
+        else {
+            settingsChanged |= _updateVideoUri(id, "");
+            if (!isUvc()) {
+                qCCritical(VideoManagerLog) << "Video source URI \"" << source << "\" is not supported. Please add support!";
+            }
+        }
+    }
+
     return settingsChanged;
 }
 
@@ -697,7 +714,7 @@ bool VideoManager::_updateVideoUri(unsigned id, const QString &uri)
         return false;
     }
 
-    qCDebug(VideoManagerLog) << "New Video URI" << uri;
+    qCWarning(VideoManagerLog) << "New Video URI" << uri;
 
     _videoReceiverData[id].uri = uri;
 
@@ -707,11 +724,11 @@ bool VideoManager::_updateVideoUri(unsigned id, const QString &uri)
 void VideoManager::_restartVideo(unsigned id)
 {
     if (id > (_videoReceiverData.size() - 1)) {
-        qCDebug(VideoManagerLog) << "Unsupported receiver id" << id;
+        qDebug() << "Unsupported receiver id" << id;
         return;
     }
 
-    qCDebug(VideoManagerLog) << "Restart video streaming" << id;
+    qCWarning(VideoManagerLog) << " *** Restart video streaming" << id;
 
     if (_videoReceiverData[id].started) {
         _stopReceiver(id);
@@ -729,18 +746,19 @@ void VideoManager::_restartAllVideos()
 
 void VideoManager::_startReceiver(unsigned id)
 {
+
     if (id > (_videoReceiverData.size() - 1)) {
-        qCDebug(VideoManagerLog) << "Unsupported receiver id" << id;
+        qCWarning(VideoManagerLog) << "Unsupported receiver id" << id;
         return;
     }
 
     if (!_videoReceiverData[id].receiver) {
-        qCDebug(VideoManagerLog) << "VideoReceiver is NULL" << id;
+        qCWarning(VideoManagerLog) << "VideoReceiver is NULL" << id;
         return;
     }
 
     if (_videoReceiverData[id].uri.isEmpty()) {
-        qCDebug(VideoManagerLog) << "VideoUri is NULL" << id;
+        qCWarning(VideoManagerLog) << "VideoUri is NULL" << id;
         return;
     }
 
@@ -749,6 +767,8 @@ void VideoManager::_startReceiver(unsigned id)
     /* The gstreamer rtsp source will switch to tcp if udp is not available after 5 seconds.
        So we should allow for some negotiation time for rtsp */
     const unsigned timeout = (source == VideoSettings::videoSourceRTSP ? rtsptimeout : 3);
+
+    qCWarning(VideoManagerLog) << " >>> *** start id:" << id << _videoReceiverData[id].uri;
 
     _videoReceiverData[id].receiver->start(_videoReceiverData[id].uri, timeout, _videoReceiverData[id].lowLatencyStreaming ? -1 : 0);
 }
