@@ -66,6 +66,45 @@ Item {
         _setPipIsExpanded(QGroundControl.loadBoolGlobalSetting(_pipExpandedSettingsKey, true))
     }
 
+    // ############ 设置开启APP将视频作为主窗口 ############
+    property var    _videoSettings:   QGroundControl.settingsManager.videoSettings
+    Timer {
+        interval:       20
+        repeat:         false
+        running:        true
+        onTriggered: {
+            // #1.设置RTSP 01 URL
+            _videoSettings.rtspUrl.value = "rtsp://admin:digui2024@192.168.1.64:554/h264/ch1/sub/av_stream"
+
+            // #2.设置RTSP 02 URL
+            _videoSettings.rtspUrl02.value = "rtsp://admin:digui2024@192.168.1.65:554/h264/ch1/sub/av_stream"
+
+            _videoSettings.videoSource.value = "RTSP Video Stream"
+        }
+    }
+    Timer {
+        interval:       50
+        repeat:         false
+        running:        true
+        onTriggered: {
+            _customSetView();
+        }
+    }
+
+    function _customSetView() {
+        var item1IsFull = false
+        if (item1.pipState.state === item1.pipState.fullState) {
+            console.log("[设置视频为主窗口]")
+            item1.pipState.state = item1.pipState.pipState
+            item2.pipState.state = item2.pipState.fullState
+            _fullItem = item2
+            _pipOrWindowItem = item1
+            item1IsFull = false
+        }
+        QGroundControl.saveBoolGlobalSetting(item1IsFullSettingsKey, item1IsFull)
+    }
+    // ############ 设置开启APP将视频作为主窗口 ############
+
     function _swapPip() {
         var item1IsFull = false
         if (item1.pipState.state === item1.pipState.fullState) {
@@ -74,6 +113,7 @@ Item {
             _fullItem = item2
             _pipOrWindowItem = item1
             item1IsFull = false
+            //console.log("设置视频为主窗口")
         } else {
             item1.pipState.state = item1.pipState.fullState
             item2.pipState.state = item2.pipState.pipState

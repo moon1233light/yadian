@@ -110,6 +110,8 @@ Item {
         FlyViewVideo {
             id:         videoControl
             pipView:    _pipView
+
+
         }
 
         PipView {
